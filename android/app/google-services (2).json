@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "94577154491",
+    "project_id": "satisapp-5c9f2",
+    "storage_bucket": "satisapp-5c9f2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:94577154491:android:afc0f673bbeb93604b4c9e",
+        "android_client_info": {
+          "package_name": "com.satisapp.satis_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAUBRFTbCXCF6Y_p2G34kdiZr6BzT7tfmY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
