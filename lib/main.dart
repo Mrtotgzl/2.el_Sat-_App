@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:satis_app/screens/login_screen.dart';
 import 'firebase_options.dart'; // Make sure this is correctly imported
-import 'package:satis_app/screens/home_page.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
