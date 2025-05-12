@@ -1,10 +1,12 @@
-// home_products_page.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'product_detail_page.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeProductsPage extends StatefulWidget {
+  final String userId;
+
+  const HomeProductsPage({super.key, required this.userId});
+
   @override
   _HomeProductsPageState createState() => _HomeProductsPageState();
 }
@@ -18,76 +20,144 @@ class _HomeProductsPageState extends State<HomeProductsPage> {
     loadFavorites();
   }
 
-  void loadFavorites() async {
-    final prefs = await SharedPreferences.getInstance();
-    final favs = prefs.getStringList('favorites') ?? [];
+  Future<void> loadFavorites() async {
+    final favSnapshot = await FirebaseFirestore.instance
+        .collection('favorites')
+        .where('userId', isEqualTo: widget.userId)
+        .get();
+
     setState(() {
-      favoriteProductIds = favs.toSet();
+      favoriteProductIds =
+          favSnapshot.docs.map((doc) => doc['productId'] as String).toSet();
     });
   }
 
-  void toggleFavorite(String productId) async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      if (favoriteProductIds.contains(productId)) {
-        favoriteProductIds.remove(productId);
-      } else {
-        favoriteProductIds.add(productId);
-      }
-      prefs.setStringList('favorites', favoriteProductIds.toList());
-    });
+  Future<void> toggleFavorite(
+      String productId, Map<String, dynamic> product) async {
+    final favRef = FirebaseFirestore.instance.collection('favorites');
+    final existing = await favRef
+        .where('userId', isEqualTo: widget.userId)
+        .where('productId', isEqualTo: productId)
+        .get();
+
+    if (existing.docs.isNotEmpty) {
+      await favRef.doc(existing.docs.first.id).delete();
+      favoriteProductIds.remove(productId);
+    } else {
+      await favRef.add({
+        'userId': widget.userId,
+        'productId': productId,
+        'title': product['title'],
+        'price': product['price'],
+        'imageUrl': product['imageUrl'],
+        'description': product['description'],
+      });
+      favoriteProductIds.add(productId);
+    }
+
+    setState(() {}); // UI yenile
   }
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder(
-      stream: FirebaseFirestore.instance
-          .collection('products')
-          .orderBy('timestamp', descending: true)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
-        final products = snapshot.data!.docs;
+    return Scaffold(
+      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream:
+        FirebaseFirestore.instance.collection('products').snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-        return GridView.builder(
-          padding: EdgeInsets.all(8),
-          gridDelegate:
-          SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 8, mainAxisSpacing: 8, childAspectRatio: 0.7),
-          itemCount: products.length,
-          itemBuilder: (context, index) {
-            final product = products[index];
-            final isFavorite = favoriteProductIds.contains(product.id);
-            return GestureDetector(
-              onTap: () {
-                Navigator.push(context, MaterialPageRoute(
-                  builder: (context) => ProductDetailPage(productData: product),
-                ));
-              },
-              child: GridTile(
-                header: Align(
-                  alignment: Alignment.topRight,
-                  child: IconButton(
-                    icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border, color: Colors.red),
-                    onPressed: () => toggleFavorite(product.id),
+          if (snapshot.hasError) {
+            return const Center(child: Text("Bir hata oluştu"));
+          }
+
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text("Henüz ürün yok"));
+          }
+
+          final products = snapshot.data!.docs;
+
+          return GridView.builder(
+            itemCount: products.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 0.8,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+            ),
+            padding: const EdgeInsets.all(8),
+            itemBuilder: (context, index) {
+              final doc = products[index];
+              final productData = doc.data();
+              final productId = doc.id;
+
+              final isFav = favoriteProductIds.contains(productId);
+
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ProductDetailPage(
+                        product: productData,
+                        productId: productId,
+                        userId: widget.userId,
+                      ),
+                    ),
+                  );
+                },
+                child: Card(
+                  elevation: 3,
+                  child: Stack(
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Image.network(
+                              productData['imageUrl'],
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  productData['title'],
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                Text("${productData['price']} ₺"),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: IconButton(
+                          icon: Icon(
+                            isFav ? Icons.favorite : Icons.favorite_border,
+                            color: isFav ? Colors.red : Colors.black,
+                          ),
+                          onPressed: () =>
+                              toggleFavorite(productId, productData),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AspectRatio(
-                      aspectRatio: 1,
-                      child: Image.network(product['imageUrl'], fit: BoxFit.cover),
-                    ),
-                    SizedBox(height: 4),
-                    Text(product['title'], style: TextStyle(fontWeight: FontWeight.bold)),
-                    Text('${product['price']} ₺'),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }

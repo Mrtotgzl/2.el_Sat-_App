@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:satis_app/screens/products/add_product_page.dart';
 import 'package:satis_app/screens/products/home_products_page.dart';
-import 'package:satis_app/screens/ui/favorites_page.dart'; // EKLENDİ
+import 'package:satis_app/screens/ui/card_page.dart';
+import 'package:satis_app/screens/ui/favorites_page.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final String userId;
+
+  const HomePage({Key? key, required this.userId}) : super(key: key);
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -13,13 +16,19 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int selectedIndex = 0;
 
-  final List<Widget> _pages = [
-    HomeProductsPage(),            // Ana sayfa
-    FavoritesPage(),               // Favoriler SAYFASI EKLENDİ
-    AddProductPage(),              // Ürün ekleme
-    Center(child: Text("Sepetim")),
-    Center(child: Text("Hesabım")),
-  ];
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      HomeProductsPage(userId: widget.userId),
+      FavoritesPage(userId: widget.userId),
+      AddProductPage(),
+      CartPage(userId: widget.userId),
+      Center(child: Text("Hesabım")),
+    ];
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -48,11 +57,11 @@ class _HomePageState extends State<HomePage> {
         selectedItemColor: Colors.purple,
         unselectedItemColor: Colors.grey,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Ana Sayfa"),
-          BottomNavigationBarItem(icon: Icon(Icons.favorite), label: "Favoriler"),
-          BottomNavigationBarItem(icon: Icon(Icons.add), label: "Ürün Ekle"),
-          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: "Sepet"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Hesabım"),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: ""),
+          BottomNavigationBarItem(icon: Icon(Icons.favorite), label: ""),
+          BottomNavigationBarItem(icon: Icon(Icons.add), label: ""),
+          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: ""),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: ""),
         ],
       ),
     );
